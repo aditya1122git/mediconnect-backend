@@ -1,0 +1,33 @@
+{
+  "name": "mediconnect-backend",
+  "version": "1.0.0",
+  "description": "MediConnect Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "set PORT=5002 && nodemon server.js",
+    "test": "jest --coverage",
+    "lint": "eslint .",
+    "seed": "node utils/seedDB.js"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.21.2",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^7.4.3",
+    "morgan": "^1.10.0",
+    "validator": "^13.15.0"
+  },
+  "devDependencies": {
+    "jest": "^29.6.2",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
