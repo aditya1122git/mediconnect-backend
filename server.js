@@ -43,34 +43,63 @@ const app = express();
 app.use(express.json({ limit: '1mb' })); // Set limit to prevent large payload attacks
 app.use(express.urlencoded({ extended: false }));
 
-// Enable CORS
-app.use(cors({
-  origin: [process.env.FRONTEND_URL || 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'],
-  credentials: true
-}));
+// CORS Configuration - FIXED
+const corsOptions = {
+  origin: [
+    // Production frontend URLs
+    'https://mediconnect-frontend2-agj677dvs-adityas-projects-93c7ad04.vercel.app',
+    // Add other Vercel deployment URLs if any
+    'https://mediconnect-frontend2.vercel.app',
+    // Local development URLs
+    'http://localhost:3000',
+    'http://localhost:3001', 
+    'http://localhost:3002',
+    'http://localhost:5173', // Vite default
+    // Environment variable
+    process.env.FRONTEND_URL
+  ].filter(Boolean), // Remove undefined values
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'x-auth-token',
+    'X-Requested-With',
+    'Accept',
+    'Origin'
+  ],
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+
+// Enable CORS with proper configuration
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
 
 // Test route to check server status
 app.get('/api/test', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'API is working!',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    cors: 'enabled'
   });
 });
 
-// Create a direct JWT token generator helper
+// Create a direct JWT token generator helper function
 function generateDirectLoginToken(user) {
   // Ensure the token is created with the same secret and config as the auth middleware expects
   const secret = JWT_CONFIG.SECRET;
-  
+    
   const payload = {
     user: {
-      id: user.id, 
+      id: user.id,      
       role: user.role,
       email: user.email
     }
   };
-  
+    
   return jwt.sign(
     payload,
     secret,
@@ -99,7 +128,7 @@ app.get('*.hot-update.json', (req, res) => res.status(404).end());
 if (process.env.NODE_ENV === 'production') {
   // Set static folder
   app.use(express.static(path.join(__dirname, '../frontend/build')));
-
+  
   app.get('*', (req, res) =>
     res.sendFile(path.resolve(__dirname, '../frontend', 'build', 'index.html'))
   );
@@ -107,14 +136,15 @@ if (process.env.NODE_ENV === 'production') {
 
 // Function to start the server
 function startServer() {
-  // Force port 5002 to avoid conflicts
-  const PORT = 5002;
-  
-  const server = app.listen(PORT, () => {
+  // Use PORT environment variable for Render deployment, fallback to 5002
+  const PORT = process.env.PORT || 5002;
+    
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`✨ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
     console.log(`🔗 API URL: http://localhost:${PORT}/api`);
+    console.log(`🌐 CORS enabled for frontend URLs`);
   });
-  
+    
   // Handle unhandled promise rejections
   process.on('unhandledRejection', (err, promise) => {
     console.log(`❌ Error: ${err.message}`.red);
