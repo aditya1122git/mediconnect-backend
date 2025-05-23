@@ -43,21 +43,45 @@ const app = express();
 app.use(express.json({ limit: '1mb' })); // Set limit to prevent large payload attacks
 app.use(express.urlencoded({ extended: false }));
 
-// CORS Configuration - FIXED
+// CORS Configuration - UPDATED AND FIXED
 const corsOptions = {
-  origin: [
-    // Production frontend URLs
-    'https://mediconnect-frontend2-agj677dvs-adityas-projects-93c7ad04.vercel.app',
-    // Add other Vercel deployment URLs if any
-    'https://mediconnect-frontend2.vercel.app',
-    // Local development URLs
-    'http://localhost:3000',
-    'http://localhost:3001', 
-    'http://localhost:3002',
-    'http://localhost:5173', // Vite default
-    // Environment variable
-    process.env.FRONTEND_URL
-  ].filter(Boolean), // Remove undefined values
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      // Current frontend URL
+      'https://mediconnect-frontend2-git-main-adityas-projects-93c7ad04.vercel.app',
+      // Previous frontend URL (keep for backup)
+      'https://mediconnect-frontend2-agj677dvs-adityas-projects-93c7ad04.vercel.app',
+      // Production domain
+      'https://mediconnect-frontend2.vercel.app',
+      // Local development URLs
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://localhost:3002',
+      'http://localhost:5173', // Vite default
+      // Environment variable
+      process.env.FRONTEND_URL
+    ].filter(Boolean);
+    
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      console.log(`✅ CORS allowed origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Check if origin matches Vercel pattern for any preview deployments
+    const vercelPattern = /^https:\/\/mediconnect-frontend2.*\.vercel\.app$/;
+    if (vercelPattern.test(origin)) {
+      console.log(`✅ CORS allowed Vercel origin: ${origin}`);
+      return callback(null, true);
+    }
+    
+    // Log rejected origins for debugging
+    console.log(`❌ CORS blocked origin: ${origin}`);
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: [
@@ -84,6 +108,18 @@ app.get('/api/test', (req, res) => {
     message: 'API is working!',
     timestamp: new Date().toISOString(),
     cors: 'enabled'
+  });
+});
+
+// CORS test route for debugging
+app.get('/api/cors-test', (req, res) => {
+  res.json({
+    message: 'CORS is working!',
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent'],
+    method: req.method,
+    timestamp: new Date().toISOString(),
+    headers: req.headers
   });
 });
 
@@ -143,6 +179,7 @@ function startServer() {
     console.log(`✨ Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
     console.log(`🔗 API URL: http://localhost:${PORT}/api`);
     console.log(`🌐 CORS enabled for frontend URLs`);
+    console.log(`🔍 Test CORS at: http://localhost:${PORT}/api/cors-test`);
   });
     
   // Handle unhandled promise rejections
